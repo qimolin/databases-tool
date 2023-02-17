@@ -15,8 +15,26 @@ import ClosureList from "@/components/ClosureList.vue";
 import { CanonicalCover } from "./classes/CanonicalCover";
 
 const activeTab = ref(0);
-const relString = ref("");
+
+const relationship = ref("");
 const fds = ref("");
+const submitted = ref(false);
+
+const relationshipError = computed(() => {
+  if (submitted.value && relationship.value === "")
+    return "Relationship is required";
+  const regex = /R=\((\w+,?)+\)/;
+  if (submitted.value && !regex.test(relationship.value))
+    return "Invalid relationship";
+  return "";
+});
+
+const fdsError = computed(() => {
+  if (submitted.value && fds.value === "") return "FDs is required";
+  const regex = /F=\{((\w+→\w+,?)+)\}/;
+  if (submitted.value && !regex.test(fds.value)) return "Invalid FDs";
+  return "";
+});
 
 const attribute = ref("");
 const attributeClosure = ref();
@@ -44,7 +62,9 @@ const isIn3NF = ref(false);
 const isInBCNF = ref(false);
 
 function parse() {
-  dependency.value = new Dependency(relString.value, fds.value);
+  submitted.value = true;
+  if (relationshipError.value !== "" || fdsError.value !== "") return;
+  dependency.value = new Dependency(relationship.value, fds.value);
   closure.value = new Closure(
     dependency.value.getAttributes(),
     dependency.value.getFD()
@@ -68,7 +88,7 @@ function parse() {
             id="relationship"
             type="text"
             placeholder="R=(A,B,C)"
-            v-model="relString"
+            v-model="relationship"
           />
           <label for="relationship">Relationship</label>
         </span>
@@ -82,7 +102,18 @@ function parse() {
           />
           <label for="fds">FDs</label>
         </span>
-        <Button type="button" label="Parse" @click="parse" />
+        <Button
+          type="button"
+          label="Parse"
+          :disabled="(submitted && relationshipError !== '') || fdsError !== ''"
+          @click="parse"
+        />
+      </section>
+      <section v-if="relationshipError !== ''" class="section">
+        <span class="error">{{ relationshipError }}</span>
+      </section>
+      <section v-if="fdsError !== ''" class="section">
+        <span class="error">{{ fdsError }}</span>
       </section>
       <TabView ref="activeTab">
         <TabPanel header="Closure">
@@ -179,6 +210,9 @@ function parse() {
   align-items: center;
   gap: 0.5rem;
   margin-top: 1rem;
+}
+.error {
+  color: red;
 }
 .accordion {
   margin-top: 1rem;
