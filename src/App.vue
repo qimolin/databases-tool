@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, type Ref } from "vue";
 
 import TabView from "primevue/tabview";
 import TabPanel from "primevue/tabpanel";
@@ -12,6 +12,7 @@ import AccordionTab from "primevue/accordiontab";
 import { Dependency } from "@/classes/Dependency";
 import { Closure } from "@/classes/Closure";
 import ClosureList from "@/components/ClosureList.vue";
+import { CanonicalCover } from "./classes/CanonicalCover";
 
 const activeTab = ref(0);
 const relString = ref("");
@@ -20,27 +21,11 @@ const fds = ref("");
 const attribute = ref("");
 const attributeClosure = ref();
 
-const isIn3NF = ref(false);
-const isInBCNF = ref(false);
-const parsed = ref(false);
-
-const dependency = ref();
-const closure = ref();
-
-function parse() {
-  dependency.value = new Dependency(
-    "R = (A, B, C, D, E, G)",
-    "F= {CD→G, G→AC, A→BD, E→BC}"
-  );
-  closure.value = new Closure(
-    dependency.value.getAttributes(),
-    dependency.value.getFD()
-  );
-  parsed.value = true;
-}
+const dependency: Ref<Dependency | undefined> = ref();
+const closure: Ref<Closure | undefined> = ref();
 
 function checkAttributeClosure() {
-  if (parsed.value) {
+  if (closure.value) {
     attributeClosure.value = closure.value.getReadableClosure(attribute.value);
   }
 }
@@ -51,27 +36,48 @@ const filteredClosure = computed(() => {
     return readableClosure;
   } else return [];
 });
+
+const cover: Ref<CanonicalCover | undefined> = ref();
+const stringCover = ref("");
+
+const isIn3NF = ref(false);
+const isInBCNF = ref(false);
+
+function parse() {
+  dependency.value = new Dependency(relString.value, fds.value);
+  closure.value = new Closure(
+    dependency.value.getAttributes(),
+    dependency.value.getFD()
+  );
+  cover.value = new CanonicalCover(
+    dependency.value.getAttributes(),
+    dependency.value.getFD()
+  );
+  stringCover.value = cover.value.getReadableCover();
+}
 </script>
 
 <template>
   <main class="main">
     <div class="container">
-      <h1>Normalization tool</h1>
+      <h1>Databases tool</h1>
       <section class="section">
         <span class="p-float-label">
           <InputText
+            style="width: 20rem"
             id="relationship"
             type="text"
-            placeholder="R={A,B,C}"
+            placeholder="R=(A,B,C)"
             v-model="relString"
           />
           <label for="relationship">Relationship</label>
         </span>
         <span class="p-float-label">
           <InputText
+            style="width: 20rem"
             id="fds"
             type="text"
-            placeholder="F={A->B,B->C}"
+            placeholder="F={A→B,B→C}"
             v-model="fds"
           />
           <label for="fds">FDs</label>
@@ -87,9 +93,9 @@ const filteredClosure = computed(() => {
                 type="text"
                 placeholder="AB"
                 v-model="attribute"
-                :disabled="!parsed"
+                :disabled="!dependency"
                 v-tooltip.top="{
-                  value: !parsed ? 'Parse a FD first' : 'Input attribute',
+                  value: !dependency ? 'Parse a FD first' : 'Input attribute',
                 }"
               />
               <label for="relationship">Attribute</label>
@@ -98,7 +104,7 @@ const filteredClosure = computed(() => {
               type="button"
               label="Check attribute closure"
               @click="checkAttributeClosure"
-              :disabled="!parsed"
+              :disabled="!dependency"
             />
             <span>{{ attributeClosure }}</span>
           </section>
@@ -108,12 +114,23 @@ const filteredClosure = computed(() => {
             </AccordionTab>
           </Accordion>
         </TabPanel>
-        <TabPanel header="Check normal form">
+        <TabPanel header="Cover">
+          <section class="section">
+            <InputText
+              style="width: 80rem"
+              type="text"
+              placeholder="Cover"
+              :disabled="true"
+              v-model="stringCover"
+            />
+          </section>
+        </TabPanel>
+        <TabPanel header="Normal form">
           <section class="section">
             <Chip
               label="3NF"
               :style="{ color: 'white', background: isIn3NF ? 'green' : 'red' }"
-              :class="{ neutral: !parsed }"
+              :class="{ neutral: !dependency }"
             />
             <Chip
               label="BCNF"
@@ -121,11 +138,11 @@ const filteredClosure = computed(() => {
                 color: 'white',
                 background: isInBCNF ? 'green' : 'red',
               }"
-              :class="{ neutral: !parsed }"
+              :class="{ neutral: !dependency }"
             />
           </section>
         </TabPanel>
-        <TabPanel header="Decompose"> </TabPanel>
+        <TabPanel header="Decompose"></TabPanel>
       </TabView>
     </div>
   </main>

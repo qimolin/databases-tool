@@ -1,3 +1,4 @@
+import { isSubset, union, isEqualSet } from "@/utils/setFunctions";
 export class Closure {
   private attributes: Set<string>;
   private attributeCombinations: Set<string>;
@@ -15,6 +16,11 @@ export class Closure {
     this.computeFullClosure();
   }
 
+  public isSuperKey(input: string): boolean {
+    const closure = this.computeClosure(input);
+    return isEqualSet(closure.result, this.attributes);
+  }
+
   public getReadableClosure(alfa: string): string {
     const closure = this.fullClosure.get(alfa);
     if (closure) return `${alfa}⁺ → ${[...closure].join("")}`;
@@ -29,21 +35,25 @@ export class Closure {
     return closure;
   }
 
-  private computeClosure(alfa: string) {
+  public getFullClosure(): Map<string, Set<string>> {
+    return this.fullClosure;
+  }
+
+  public computeClosure(alfa: string) {
     const result = new Set<string>(alfa); // alfa
     let changed = true;
     while (changed) {
       changed = false;
       for (const [beta, gamma] of this.fds.entries()) {
-        if (this.isSubset(beta, result)) {
-          changed = this.union(result, gamma) || changed;
+        if (isSubset(new Set(beta), result)) {
+          changed = union(result, gamma) || changed;
         }
       }
     }
     return { alfa, result };
   }
 
-  private computeFullClosure() {
+  public computeFullClosure() {
     this.attributeCombinations.forEach((attribute) => {
       const { alfa, result } = this.computeClosure(attribute);
       this.fullClosure.set(alfa, result);
@@ -68,25 +78,5 @@ export class Closure {
     }
 
     return result;
-  }
-
-  private isSubset(beta: string, result: Set<string>): boolean {
-    for (const elem of beta) {
-      if (!result.has(elem)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private union(result: Set<string>, gamma: Set<string>): boolean {
-    let changed = false;
-    for (const elem of gamma) {
-      if (!result.has(elem)) {
-        result.add(elem);
-        changed = true;
-      }
-    }
-    return changed;
   }
 }

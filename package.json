@@ -1,6 +1,9 @@
 {
-  "name": "normalization-tool",
-  "version": "0.0.0",
+  "name": "databases-tool",
+  "author": "Qi-Mo Lin",
+  "description": "A relational database tool",
+  "version": "0.0.1",
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "vite",
