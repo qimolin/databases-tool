@@ -24,7 +24,7 @@ const submitted = ref(false);
 const relationshipError = computed(() => {
   if (submitted.value && relationship.value === "")
     return "Relationship is required";
-  const regex = /R=\s*\s*\((\s*\w+\s*,?\s*)+\)\s*/;
+  const regex = /R\s*=\s*\((\s*\w+\s*,?\s*)+\)\s*/;
   if (submitted.value && !regex.test(relationship.value))
     return "Invalid relationship";
   return "";
@@ -32,7 +32,7 @@ const relationshipError = computed(() => {
 
 const fdsError = computed(() => {
   if (submitted.value && fds.value === "") return "FDs is required";
-  const regex = /F\s*=\s*\{(\s*\w+\s*→\s*\w+\s*,?\s*)+}/;
+  const regex = /F\s*=\s*{(\s*\w+\s*→\s*\w+\s*,?\s*)+}\s*/;
   if (submitted.value && !regex.test(fds.value)) return "Invalid FDs";
   return "";
 });
