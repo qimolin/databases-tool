@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, type Ref } from "vue";
+import { computed, ref, watch, type Ref } from "vue";
 
 import TabView from "primevue/tabview";
 import TabPanel from "primevue/tabpanel";
 import InputText from "primevue/inputtext";
+import InputNumber from "primevue/inputnumber";
 import Button from "primevue/button";
 import Chip from "primevue/chip";
 import Accordion from "primevue/accordion";
@@ -57,6 +58,28 @@ const filteredClosure = computed(() => {
 
 const cover: Ref<CanonicalCover | undefined> = ref();
 const stringCover = ref("");
+
+const decompositions: Ref<Array<string>> = ref([""]);
+const decompositionCount = ref(1);
+const tempDecompCount = ref(1);
+
+watch(
+  () => decompositionCount.value,
+  (newValue, oldValue) => {
+    if (oldValue < newValue) {
+      for (let i = oldValue; i < newValue; i++) {
+        decompositions.value.push("");
+      }
+    } else {
+      decompositions.value = decompositions.value.slice(0, newValue);
+    }
+  }
+);
+
+function confirmCount() {
+  if (tempDecompCount.value < 1) tempDecompCount.value = 1;
+  decompositionCount.value = tempDecompCount.value;
+}
 
 const isIn3NF = ref(false);
 const isInBCNF = ref(false);
@@ -156,7 +179,21 @@ function parse() {
             />
           </section>
         </TabPanel>
-        <TabPanel header="Decompose"></TabPanel>
+        <TabPanel header="Decompose">
+          <section class="section decomposition">
+            <InputText
+              v-for="index in decompositionCount"
+              :key="index"
+              type="text"
+              :placeholder="`R${index}`"
+              v-model="decompositions[index - 1]"
+            />
+          </section>
+          <section class="section">
+            <InputNumber v-model="tempDecompCount" :min="1" showButtons />
+            <Button label="Confirm" @click="confirmCount" />
+          </section>
+        </TabPanel>
         <TabPanel header="Normal form">
           <section class="section">
             <Chip
@@ -209,12 +246,21 @@ function parse() {
   justify-content: center;
   align-items: center;
   gap: 0.5rem;
-  margin-top: 1rem;
+  margin: 1rem;
+}
+.section.decomposition {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin: 1rem;
 }
 .error {
   color: red;
 }
 .accordion {
   margin-top: 1rem;
+}
+.p-inputnumber-input {
+  width: 3rem;
 }
 </style>

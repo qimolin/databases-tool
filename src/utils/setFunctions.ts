@@ -18,6 +18,18 @@ function union(result: Set<string>, gamma: Set<string>): boolean {
   return changed;
 }
 
+function intersection(setA: Set<string>, setB: Set<string>): Set<string> {
+  const intersectionSet = new Set<string>();
+
+  for (const elem of setB) {
+    if (setA.has(elem)) {
+      intersectionSet.add(elem);
+    }
+  }
+
+  return intersectionSet;
+}
+
 function isEqualSet(a: Set<string>, b: Set<string>): boolean {
   if (a.size !== b.size) {
     return false;
@@ -30,4 +42,4 @@ function isEqualSet(a: Set<string>, b: Set<string>): boolean {
   return true;
 }
 
-export { isSubset, union, isEqualSet };
+export { isSubset, union, intersection, isEqualSet };
