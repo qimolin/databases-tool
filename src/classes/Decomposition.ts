@@ -1,5 +1,6 @@
-import { intersection, isSubset, union } from "@/utils/setFunctions";
+import { intersection, isSubset, union, toString } from "@/utils/setFunctions";
 import { Closure } from "./Closure";
+import { Graph } from "./Graph";
 
 type Relation = {
   attributes: Set<string>;
@@ -37,9 +38,9 @@ export class Decomposition {
     return newRelations;
   }
 
-  private isLossless() {
-    let isLossless = false;
+  public isLossless(): boolean {
     const closure = new Closure(this.attributes, this.fds);
+    const graph = new Graph(this.relations.length);
     for (let i = 0; i < this.relations.length; i++) {
       const firstRelation = this.relations[i];
       for (let j = i + 1; j < this.relations.length; j++) {
@@ -49,42 +50,54 @@ export class Decomposition {
           secondRelation.attributes
         );
         const intersectionClosure = closure.computeClosure(
-          relationIntersection.toString()
+          toString(relationIntersection)
         );
         if (
           isSubset(firstRelation.attributes, intersectionClosure.result) ||
           isSubset(secondRelation.attributes, intersectionClosure.result)
         ) {
-          isLossless = true;
+          graph.addEdge(i, j);
         }
       }
     }
-    return isLossless;
+    return graph.isConnected();
   }
 
-  private isDependencyPreserving() {
-    let isDependencyPreserving = false;
-
+  public isDependencyPreserving(): boolean {
+    const isDependencyPreserving: boolean[] = [];
     const closure = new Closure(this.attributes, this.fds);
-    for (let i = 0; i < this.relations.length; i++) {
+    let counter = 0;
+    for (const [alfa, beta] of this.fds) {
+      const result = new Set(alfa);
       let changed = true;
       while (changed) {
         changed = false;
-        const relation = this.relations[i].attributes;
-        for (const [alfa, beta] of this.fds) {
-          const temp = closure.computeClosure(
-            intersection(new Set(alfa), relation).toString()
+        const rDependencyPreserving: boolean[] = [];
+        for (let i = 0; i < this.relations.length; i++) {
+          const rClosure = closure.computeClosure(
+            toString(
+              intersection(
+                new Set(result),
+                new Set(this.relations[i].attributes)
+              )
+            )
           );
-          const t = intersection(temp.result, relation);
-          changed = union(relation, t) || changed;
-          if (isSubset(new Set(beta), relation)) {
-            isDependencyPreserving = true;
+          const t = intersection(rClosure.result, this.relations[i].attributes);
+          if (t.size > 0) {
+            changed = union(result, t) || changed;
+          }
+          if (isSubset(new Set(beta), result)) {
+            rDependencyPreserving[i] = true;
           } else {
-            isDependencyPreserving = false;
+            rDependencyPreserving[i] = false;
           }
         }
+        isDependencyPreserving[counter] = rDependencyPreserving.every(
+          (value) => value === true
+        );
       }
+      counter++;
     }
-    return isDependencyPreserving;
+    return isDependencyPreserving.every((value) => value === true);
   }
 }

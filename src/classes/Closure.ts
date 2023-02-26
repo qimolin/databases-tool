@@ -40,7 +40,7 @@ export class Closure {
   }
 
   public computeClosure(alfa: string) {
-    const result = new Set<string>(alfa); // alfa
+    const result = new Set<string>(alfa);
     let changed = true;
     while (changed) {
       changed = false;

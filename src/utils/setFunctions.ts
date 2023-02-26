@@ -15,6 +15,9 @@ function union(result: Set<string>, gamma: Set<string>): boolean {
       changed = true;
     }
   }
+  if (gamma.size === 0) {
+    changed = false;
+  }
   return changed;
 }
 
@@ -42,4 +45,8 @@ function isEqualSet(a: Set<string>, b: Set<string>): boolean {
   return true;
 }
 
-export { isSubset, union, intersection, isEqualSet };
+function toString(set: Set<string>): string {
+  return [...set].join("");
+}
+
+export { isSubset, union, intersection, isEqualSet, toString };
