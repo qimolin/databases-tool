@@ -1,17 +1,17 @@
 import { isSubset, union, isEqualSet } from "@/utils/setFunctions";
 export class Closure {
   private attributes: Set<string>;
-  private attributeCombinations: Set<string>;
+  private permutations: Set<string>;
   private fds: Map<string, Set<string>>;
   private fullClosure: Map<string, Set<string>>;
 
   constructor(attributes: Set<string>, fds: Map<string, Set<string>>) {
     this.attributes = attributes;
-    this.attributeCombinations = this.getAllCombinations(this.attributes);
+    this.permutations = this.getPermutations(this.attributes);
     this.fds = fds;
     this.fullClosure = new Map();
-    this.attributeCombinations.forEach((attribute) => {
-      this.computeClosure(attribute);
+    this.permutations.forEach((permutation) => {
+      this.computeClosure(permutation);
     });
     this.computeFullClosure();
   }
@@ -19,6 +19,30 @@ export class Closure {
   public isSuperKey(input: string): boolean {
     const closure = this.computeClosure(input);
     return isEqualSet(closure.result, this.attributes);
+  }
+
+  public getAllCandidateKeys(): Set<Set<string>> {
+    const candidateKeys: Set<Set<string>> = new Set();
+
+    for (const alfa of this.permutations) {
+      if (this.isSuperKey(alfa)) {
+        const candidateKey = new Set(alfa);
+        let isMinimal = true;
+
+        for (const existingKey of candidateKeys) {
+          if (isSubset(candidateKey, existingKey)) {
+            isMinimal = false;
+            break;
+          }
+        }
+
+        if (isMinimal) {
+          candidateKeys.add(candidateKey);
+        }
+      }
+    }
+
+    return candidateKeys;
   }
 
   public getReadableClosure(alfa: string): string {
@@ -40,12 +64,12 @@ export class Closure {
   }
 
   public computeClosure(alfa: string) {
-    const result = new Set<string>(alfa);
+    const result = new Set(alfa);
     let changed = true;
     while (changed) {
       changed = false;
-      for (const [beta, gamma] of this.fds.entries()) {
-        if (isSubset(new Set(beta), result)) {
+      for (const [beta, gamma] of this.fds) {
+        if (isSubset(new Set(beta), new Set(alfa))) {
           changed = union(result, gamma) || changed;
         }
       }
@@ -54,13 +78,13 @@ export class Closure {
   }
 
   public computeFullClosure() {
-    this.attributeCombinations.forEach((attribute) => {
-      const { alfa, result } = this.computeClosure(attribute);
+    this.permutations.forEach((permutation) => {
+      const { alfa, result } = this.computeClosure(permutation);
       this.fullClosure.set(alfa, result);
     });
   }
 
-  private getAllCombinations(inputSet: Set<string>): Set<string> {
+  private getPermutations(inputSet: Set<string>): Set<string> {
     const inputArray = [...inputSet];
     const n = inputArray.length;
     const result: Set<string> = new Set<string>();

@@ -1,6 +1,13 @@
-import { intersection, isSubset, union, toString } from "@/utils/setFunctions";
+import {
+  intersection,
+  isSubset,
+  union,
+  toString,
+  difference,
+} from "@/utils/setFunctions";
 import { Closure } from "./Closure";
 import { Graph } from "./Graph";
+import { Normalization } from "./Normalization";
 
 type Relation = {
   attributes: Set<string>;
@@ -99,5 +106,40 @@ export class Decomposition {
       counter++;
     }
     return isDependencyPreserving.every((value) => value === true);
+  }
+
+  public isIn3NF(): boolean {
+    for (const relation of this.relations) {
+      const applicableFds = this.getApplicableFds(relation.attributes);
+      if (!Normalization.check3NF(relation.attributes, applicableFds)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public isInBCNF(): boolean {
+    for (const relation of this.relations) {
+      const applicableFds = this.getApplicableFds(relation.attributes);
+      if (!Normalization.checkBCNF(relation.attributes, applicableFds)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  private getApplicableFds(
+    relationAttributes: Set<string>
+  ): Map<string, Set<string>> {
+    const applicableFds = new Map<string, Set<string>>();
+    for (const [alfa, beta] of this.fds) {
+      if (
+        isSubset(new Set(alfa), relationAttributes) &&
+        isSubset(beta, relationAttributes)
+      ) {
+        applicableFds.set(alfa, beta);
+      }
+    }
+    return applicableFds;
   }
 }

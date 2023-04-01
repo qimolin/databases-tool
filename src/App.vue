@@ -15,26 +15,25 @@ import { Closure } from "@/classes/Closure";
 import ClosureList from "@/components/ClosureList.vue";
 import { CanonicalCover } from "./classes/CanonicalCover";
 import { Decomposition } from "./classes/Decomposition";
+import { Normalization } from "./classes/Normalization";
 
 const activeTab = ref(0);
 
-const relationship = ref("R = (A, B, C, D, E, G)");
-const fds = ref("F= {CD→G, G→AC, A→BD, E→BC}");
-const submitted = ref(false);
+const relationship = ref("");
+const fds = ref("");
+const parsed = ref(false);
 
 const relationshipError = computed(() => {
-  if (submitted.value && relationship.value === "")
-    return "Relationship is required";
+  if (relationship.value === "") return "Relationship is required";
   const regex = /R\s*=\s*\((\s*\w+\s*,?\s*)+\)\s*/;
-  if (submitted.value && !regex.test(relationship.value))
-    return "Invalid relationship";
+  if (!regex.test(relationship.value)) return "Invalid relationship";
   return "";
 });
 
 const fdsError = computed(() => {
-  if (submitted.value && fds.value === "") return "FDs is required";
+  if (fds.value === "") return "FDs is required";
   const regex = /F\s*=\s*{(\s*\w+\s*→\s*\w+\s*,?\s*)+}\s*/;
-  if (submitted.value && !regex.test(fds.value)) return "Invalid FDs";
+  if (!regex.test(fds.value)) return "Invalid FDs";
   return "";
 });
 
@@ -60,19 +59,15 @@ const filteredClosure = computed(() => {
 const cover: Ref<CanonicalCover | undefined> = ref();
 const stringCover = ref("");
 
-const decompositions: Ref<Array<string>> = ref([
-  "R1 = (C, D, G)",
-  "R2 = (A, C, G)",
-  "R3 = (A, B, D)",
-  "R4 = (B, C, E)",
-  "R5 = (E, G)",
-]);
-const decompositionCount = ref(5);
-const tempDecompCount = ref(1);
+const decompositions: Ref<Array<string>> = ref([""]);
+const decompositionCount = ref(1);
+const tempDecompositionCount = ref(1);
 const decompositionChecked = ref(false);
 const decomposition: Ref<Decomposition | undefined> = ref();
 const isLossless = ref(false);
 const isDependencyPreserving = ref(false);
+const decompositionIsIn3NF = ref(false);
+const decompositionIsInBCNF = ref(false);
 
 watch(
   () => decompositionCount.value,
@@ -106,8 +101,8 @@ const rows = computed(() => {
 });
 
 function confirmCount() {
-  if (tempDecompCount.value < 1) tempDecompCount.value = 1;
-  decompositionCount.value = tempDecompCount.value;
+  if (tempDecompositionCount.value < 1) tempDecompositionCount.value = 1;
+  decompositionCount.value = tempDecompositionCount.value;
 }
 
 function checkDecomposition() {
@@ -122,6 +117,8 @@ function checkDecomposition() {
     );
     isLossless.value = decomposition.value.isLossless();
     isDependencyPreserving.value = decomposition.value.isDependencyPreserving();
+    decompositionIsInBCNF.value = decomposition.value.isInBCNF();
+    decompositionIsIn3NF.value = decomposition.value.isIn3NF();
   }
 }
 
@@ -129,7 +126,7 @@ const isIn3NF = ref(false);
 const isInBCNF = ref(false);
 
 function parse() {
-  submitted.value = true;
+  parsed.value = true;
   if (relationshipError.value !== "" || fdsError.value !== "") return;
   dependency.value = new Dependency(relationship.value, fds.value);
   const attributes = dependency.value.getAttributes();
@@ -137,6 +134,8 @@ function parse() {
   closure.value = new Closure(attributes, parsedFds);
   cover.value = new CanonicalCover(attributes, parsedFds);
   stringCover.value = cover.value.getReadableCover();
+  isInBCNF.value = Normalization.checkBCNF(attributes, parsedFds);
+  isIn3NF.value = Normalization.check3NF(attributes, parsedFds);
 }
 </script>
 
@@ -168,7 +167,7 @@ function parse() {
         <Button
           type="button"
           label="Parse"
-          :disabled="(submitted && relationshipError !== '') || fdsError !== ''"
+          :disabled="relationshipError !== '' || fdsError !== ''"
           @click="parse"
         />
       </section>
@@ -177,6 +176,25 @@ function parse() {
       </section>
       <section v-if="fdsError !== ''" class="row">
         <span class="error">{{ fdsError }}</span>
+      </section>
+      <section class="row">
+        <Chip
+          label="3NF"
+          :style="{ color: 'white', background: isIn3NF ? 'green' : 'red' }"
+          :class="{
+            neutral: !parsed,
+          }"
+        />
+        <Chip
+          label="BCNF"
+          :style="{
+            color: 'white',
+            background: isInBCNF ? 'green' : 'red',
+          }"
+          :class="{
+            neutral: !parsed,
+          }"
+        />
       </section>
       <TabView ref="activeTab">
         <TabPanel header="Closure">
@@ -223,6 +241,7 @@ function parse() {
           <div v-for="(row, index) in rows" :key="index" class="row">
             <div v-for="(_item, itemIndex) in row" :key="itemIndex">
               <InputText
+                :disabled="!parsed"
                 type="text"
                 :placeholder="`R${itemIndex + 1 + index * 3}`"
                 v-model="decompositions[itemIndex + index * 3]"
@@ -230,9 +249,18 @@ function parse() {
             </div>
           </div>
           <section class="row">
-            <InputNumber v-model="tempDecompCount" :min="1" showButtons />
-            <Button label="Confirm" @click="confirmCount" />
-            <Button label="Check" @click="checkDecomposition" />
+            <InputNumber
+              :disabled="!parsed"
+              v-model="tempDecompositionCount"
+              :min="1"
+              showButtons
+            />
+            <Button :disabled="!parsed" label="Confirm" @click="confirmCount" />
+            <Button
+              :disabled="!parsed"
+              label="Check"
+              @click="checkDecomposition"
+            />
           </section>
           <section class="row">
             <Chip
@@ -251,22 +279,21 @@ function parse() {
               }"
               :class="{ neutral: !decompositionChecked }"
             />
-          </section>
-        </TabPanel>
-        <TabPanel header="Normal form">
-          <section class="row">
             <Chip
               label="3NF"
-              :style="{ color: 'white', background: isIn3NF ? 'green' : 'red' }"
-              :class="{ neutral: !submitted }"
+              :style="{
+                color: 'white',
+                background: decompositionIsIn3NF ? 'green' : 'red',
+              }"
+              :class="{ neutral: !decompositionChecked }"
             />
             <Chip
               label="BCNF"
               :style="{
                 color: 'white',
-                background: isInBCNF ? 'green' : 'red',
+                background: decompositionIsInBCNF ? 'green' : 'red',
               }"
-              :class="{ neutral: !submitted }"
+              :class="{ neutral: !decompositionChecked }"
             />
           </section>
         </TabPanel>
@@ -308,6 +335,7 @@ function parse() {
 .row {
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 .error {
   color: red;

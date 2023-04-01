@@ -45,8 +45,20 @@ function isEqualSet(a: Set<string>, b: Set<string>): boolean {
   return true;
 }
 
+function difference(setA: Set<string>, setB: Set<string>): Set<string> {
+  const differenceSet = new Set<string>();
+
+  for (const elem of setA) {
+    if (!setB.has(elem)) {
+      differenceSet.add(elem);
+    }
+  }
+
+  return differenceSet;
+}
+
 function toString(set: Set<string>): string {
   return [...set].join("");
 }
 
-export { isSubset, union, intersection, isEqualSet, toString };
+export { isSubset, union, intersection, isEqualSet, difference, toString };
