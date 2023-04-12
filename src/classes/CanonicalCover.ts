@@ -8,7 +8,7 @@ export class CanonicalCover {
 
   constructor(attributes: Set<string>, fds: Map<string, Set<string>>) {
     this.attributes = attributes;
-    this.fds = fds;
+    this.fds = new Map(fds.entries());
     this.computeCover();
   }
 

@@ -22,6 +22,8 @@ const activeTab = ref(0);
 const relationship = ref("");
 const fds = ref("");
 const parsed = ref(false);
+const parsedFds: Ref<Map<string, Set<string>> | null> = ref(null);
+const parsedAttributes: Ref<Set<string> | null> = ref(null);
 
 const relationshipError = computed(() => {
   if (relationship.value === "") return "Relationship is required";
@@ -108,11 +110,9 @@ function confirmCount() {
 function checkDecomposition() {
   if (dependency.value) {
     decompositionChecked.value = true;
-    const attributes = dependency.value.getAttributes();
-    const parsedFds = dependency.value.getFD();
     decomposition.value = new Decomposition(
-      attributes,
-      parsedFds,
+      parsedAttributes.value!,
+      parsedFds.value!,
       decompositions.value
     );
     isLossless.value = decomposition.value.isLossless();
@@ -129,13 +129,19 @@ function parse() {
   parsed.value = true;
   if (relationshipError.value !== "" || fdsError.value !== "") return;
   dependency.value = new Dependency(relationship.value, fds.value);
-  const attributes = dependency.value.getAttributes();
-  const parsedFds = dependency.value.getFD();
-  closure.value = new Closure(attributes, parsedFds);
-  cover.value = new CanonicalCover(attributes, parsedFds);
+  parsedAttributes.value = dependency.value.getAttributes();
+  parsedFds.value = dependency.value.getFD();
+  closure.value = new Closure(parsedAttributes.value, parsedFds.value);
+  cover.value = new CanonicalCover(parsedAttributes.value, parsedFds.value);
   stringCover.value = cover.value.getReadableCover();
-  isInBCNF.value = Normalization.checkBCNF(attributes, parsedFds);
-  isIn3NF.value = Normalization.check3NF(attributes, parsedFds);
+  isInBCNF.value = Normalization.checkBCNF(
+    parsedAttributes.value,
+    parsedFds.value
+  );
+  isIn3NF.value = Normalization.check3NF(
+    parsedAttributes.value,
+    parsedFds.value
+  );
 }
 </script>
 

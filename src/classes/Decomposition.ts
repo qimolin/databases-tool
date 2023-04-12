@@ -1,10 +1,4 @@
-import {
-  intersection,
-  isSubset,
-  union,
-  toString,
-  difference,
-} from "@/utils/setFunctions";
+import { intersection, isSubset, union, toString } from "@/utils/setFunctions";
 import { Closure } from "./Closure";
 import { Graph } from "./Graph";
 import { Normalization } from "./Normalization";

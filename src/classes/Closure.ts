@@ -69,7 +69,7 @@ export class Closure {
     while (changed) {
       changed = false;
       for (const [beta, gamma] of this.fds) {
-        if (isSubset(new Set(beta), new Set(alfa))) {
+        if (isSubset(new Set(beta), result)) {
           changed = union(result, gamma) || changed;
         }
       }
